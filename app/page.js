@@ -25,11 +25,11 @@ import {
 import confetti from 'canvas-confetti';
 
 const AVAILABLE_MODELS = [
-  { id: 'inclusionai/ling-3.0-flash-vl:free', name: 'Ling 3.0 Flash VL (Free - Default)', badge: 'Default' },
-  { id: 'inclusionai/ling-3.0-flash-fin:free', name: 'Ling 3.0 Flash Fin (Free)', badge: 'Free' },
-  { id: 'nex-agi/nex-n2.5-pro:free', name: 'Nex N2.5 Pro (Free)', badge: 'Free' },
-  { id: 'qwen/qwen3.8-27b:free', name: 'Qwen 3.8 27B (Free)', badge: 'Free' },
-  { id: 'nvidia/nemotron-3.5-lightning:free', name: 'Nvidia Nemotron 3.5 Lightning (Free)', badge: 'Free' },
+  { id: 'gemini-2.5-flash', name: 'Google Gemini 2.5 Flash (1M+ Token Context)', badge: 'Recommended' },
+  { id: 'inclusionai/ling-3.0-flash-vl:free', name: 'Ling 3.0 Flash VL (OpenRouter)', badge: 'Free' },
+  { id: 'inclusionai/ling-3.0-flash-fin:free', name: 'Ling 3.0 Flash Fin (OpenRouter)', badge: 'Free' },
+  { id: 'nex-agi/nex-n2.5-pro:free', name: 'Nex N2.5 Pro (OpenRouter)', badge: 'Free' },
+  { id: 'qwen/qwen3.8-27b:free', name: 'Qwen 3.8 27B (OpenRouter)', badge: 'Free' },
   { id: 'custom', name: '⚙️ Gunakan Custom Model ID...', badge: 'Manual' }
 ];
 
@@ -152,8 +152,11 @@ function RadialGauge({ score }) {
 
 export default function HomePage() {
   const [inputText, setInputText] = useState('');
-  const [selectedModel, setSelectedModel] = useState('inclusionai/ling-3.0-flash-vl:free');
+  const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash');
   const [customModel, setCustomModel] = useState('');
+  const [userOpenRouterKey, setUserOpenRouterKey] = useState('');
+  const [userGeminiKey, setUserGeminiKey] = useState('');
+  const [showKeyModal, setShowKeyModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [progressStatus, setProgressStatus] = useState('');
   const [result, setResult] = useState(null);
@@ -161,7 +164,7 @@ export default function HomePage() {
   const [uploadedFile, setUploadedFile] = useState(null);
   const [uploadingFile, setUploadingFile] = useState(false);
   const [copyFeedback, setCopyFeedback] = useState(false);
-  const [filterHighlight, setFilterHighlight] = useState('all'); // 'all' | 'ai' | 'mixed' | 'human'
+  const [filterHighlight, setFilterHighlight] = useState('all');
   const fileInputRef = useRef(null);
 
   const wordCount = inputText.trim() ? inputText.trim().split(/\s+/).length : 0;
@@ -237,7 +240,9 @@ export default function HomePage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             text: chunks[i], 
-            model: activeModelId 
+            model: activeModelId,
+            userOpenRouterKey: userOpenRouterKey.trim() || undefined,
+            userGeminiKey: userGeminiKey.trim() || undefined
           }),
         });
 
@@ -375,15 +380,29 @@ export default function HomePage() {
             </div>
 
             {/* Futuristic Model Selector Glass Card */}
-            <div className="glass-panel-futuristic" style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '8px', minWidth: '340px' }}>
+            <div className="glass-panel-futuristic" style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '10px', minWidth: '350px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', color: '#38bdf8', fontWeight: '700' }}>
                   <Cpu size={16} />
-                  <span>Neural Model Core:</span>
+                  <span>Engine: {selectedModel.startsWith('gemini') ? 'Google Gemini' : 'OpenRouter'}</span>
                 </div>
-                <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '6px', background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
-                  Active
-                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowKeyModal(true)}
+                  style={{
+                    background: userGeminiKey || userOpenRouterKey ? 'rgba(16, 185, 129, 0.2)' : 'rgba(99, 102, 241, 0.2)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    color: userGeminiKey || userOpenRouterKey ? '#34d399' : '#a5b4fc',
+                    borderRadius: '6px',
+                    padding: '3px 8px',
+                    fontSize: '0.75rem',
+                    fontWeight: '600',
+                    cursor: 'pointer'
+                  }}
+                  title="Ganti atau masukkan API Key pribadi"
+                >
+                  ⚙️ {userGeminiKey || userOpenRouterKey ? 'Key Kustom Aktif' : 'Ganti Token / Key'}
+                </button>
               </div>
               
               <select
@@ -603,22 +622,78 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Error Message */}
+            {/* Error Message with YouTube Tutorial & Key Switcher */}
             {error && (
               <div style={{
                 marginTop: '18px',
-                padding: '14px 18px',
-                background: 'rgba(239, 68, 68, 0.15)',
-                border: '1px solid rgba(239, 68, 68, 0.4)',
-                borderRadius: '10px',
+                padding: '16px 20px',
+                background: 'rgba(239, 68, 68, 0.16)',
+                border: '1px solid rgba(239, 68, 68, 0.45)',
+                borderRadius: '12px',
                 color: '#fca5a5',
-                fontSize: '0.9rem',
+                fontSize: '0.92rem',
+                lineHeight: '1.6',
                 display: 'flex',
-                alignItems: 'center',
-                gap: '10px'
+                flexDirection: 'column',
+                gap: '12px'
               }}>
-                <AlertTriangle size={20} />
-                <span>{error}</span>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                  <AlertTriangle size={22} style={{ flexShrink: 0, marginTop: '2px', color: '#f87171' }} />
+                  <div>
+                    <strong>Pemberitahuan Sistem:</strong>
+                    <p style={{ marginTop: '4px' }}>{error}</p>
+                  </div>
+                </div>
+
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '10px',
+                  paddingTop: '8px',
+                  borderTop: '1px solid rgba(255, 255, 255, 0.1)'
+                }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowKeyModal(true)}
+                    className="btn-cyber-primary"
+                    style={{ padding: '8px 14px', fontSize: '0.82rem' }}
+                  >
+                    ⚙️ Masukkan / Ganti Token Anda
+                  </button>
+
+                  <a
+                    href="https://www.youtube.com/results?search_query=cara+membuat+api+key+google+gemini+gratis"
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      color: '#38bdf8',
+                      textDecoration: 'underline',
+                      fontSize: '0.82rem',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    ▶ Tutorial YouTube: Cara Buat API Key Gemini (Gratis)
+                  </a>
+
+                  <a
+                    href="https://www.youtube.com/results?search_query=cara+mendapatkan+api+key+openrouter"
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      color: '#a5b4fc',
+                      textDecoration: 'underline',
+                      fontSize: '0.82rem',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    ▶ Tutorial YouTube: Cara Buat API Key OpenRouter
+                  </a>
+                </div>
               </div>
             )}
           </section>
@@ -825,6 +900,140 @@ export default function HomePage() {
           )}
 
         </div>
+
+        {/* Modal Pengaturan Token / API Key */}
+        {showKeyModal && (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '20px'
+          }}>
+            <div className="glass-panel-futuristic" style={{
+              maxWidth: '560px',
+              width: '100%',
+              padding: '28px',
+              background: '#0d1322',
+              border: '1px solid rgba(56, 189, 248, 0.3)',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.8)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: '800', color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Cpu size={20} color="#38bdf8" /> Ganti Token API Key Anda
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setShowKeyModal(false)}
+                  style={{ background: 'transparent', border: 'none', color: '#94a3b8', fontSize: '1.2rem', cursor: 'pointer' }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', lineHeight: '1.5', marginBottom: '20px' }}>
+                Gunakan API Key pribadi Anda jika kuota token bersama kami sedang habis. Key hanya disimpan di browser Anda selama sesi ini dan tidak disimpan di database.
+              </p>
+
+              {/* Gemini Key Input */}
+              <div style={{ marginBottom: '18px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '0.85rem', fontWeight: '700', color: '#38bdf8' }}>
+                    Google Gemini API Key:
+                  </label>
+                  <a
+                    href="https://www.youtube.com/results?search_query=cara+membuat+api+key+google+gemini+gratis"
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ fontSize: '0.75rem', color: '#93c5fd', textDecoration: 'underline' }}
+                  >
+                    ▶ Cara Buat di YouTube
+                  </a>
+                </div>
+                <input
+                  type="password"
+                  value={userGeminiKey}
+                  onChange={(e) => setUserGeminiKey(e.target.value)}
+                  placeholder="AIzaSy..."
+                  style={{
+                    width: '100%',
+                    background: 'rgba(15, 23, 42, 0.8)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    borderRadius: '8px',
+                    padding: '10px 14px',
+                    color: '#f8fafc',
+                    fontSize: '0.9rem',
+                    outline: 'none'
+                  }}
+                />
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                  Dapatkan gratis di: <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" style={{ color: '#38bdf8' }}>Google AI Studio</a>
+                </span>
+              </div>
+
+              {/* OpenRouter Key Input */}
+              <div style={{ marginBottom: '24px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '0.85rem', fontWeight: '700', color: '#a5b4fc' }}>
+                    OpenRouter API Key:
+                  </label>
+                  <a
+                    href="https://www.youtube.com/results?search_query=cara+mendapatkan+api+key+openrouter"
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ fontSize: '0.75rem', color: '#c7d2fe', textDecoration: 'underline' }}
+                  >
+                    ▶ Cara Buat di YouTube
+                  </a>
+                </div>
+                <input
+                  type="password"
+                  value={userOpenRouterKey}
+                  onChange={(e) => setUserOpenRouterKey(e.target.value)}
+                  placeholder="sk-or-v1-..."
+                  style={{
+                    width: '100%',
+                    background: 'rgba(15, 23, 42, 0.8)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    borderRadius: '8px',
+                    padding: '10px 14px',
+                    color: '#f8fafc',
+                    fontSize: '0.9rem',
+                    outline: 'none'
+                  }}
+                />
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                  Dapatkan gratis di: <a href="https://openrouter.ai/keys" target="_blank" rel="noreferrer" style={{ color: '#a5b4fc' }}>OpenRouter Keys</a>
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                {(userGeminiKey || userOpenRouterKey) && (
+                  <button
+                    type="button"
+                    onClick={() => { setUserGeminiKey(''); setUserOpenRouterKey(''); }}
+                    className="btn-cyber-secondary"
+                    style={{ fontSize: '0.85rem' }}
+                  >
+                    Reset ke Key Server
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setShowKeyModal(false)}
+                  className="btn-cyber-primary"
+                  style={{ fontSize: '0.85rem' }}
+                >
+                  Simpan & Gunakan
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Footer */}
         <footer style={{ marginTop: '60px', borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '28px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
