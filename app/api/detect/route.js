@@ -67,86 +67,117 @@ PENTING: Output Anda HARUS berformat JSON murni TANPA markdown wrapper (jangan g
   ]
 }`;
 
-    const openRouterResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://vercel.app',
-        'X-Title': 'AI Detector Tool'
-      },
-      body: JSON.stringify({
-        model: model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: `Analisis teks berikut:\n\n"""\n${trimmedText}\n"""` }
-        ],
-        temperature: 0.1,
-        max_tokens: 3000
-      })
-    });
+    // Daftar model fallback jika model gratis utama terkena rate-limit (429 upstream)
+    const fallbackModels = [
+      model,
+      'meta-llama/llama-3.3-70b-instruct:free',
+      'google/gemini-2.0-flash-lite-preview-02-05:free',
+      'deepseek/deepseek-r1:free',
+      'mistralai/mistral-small-24b-instruct-2501:free'
+    ].filter((m, idx, arr) => arr.indexOf(m) === idx);
 
-    if (!openRouterResponse.ok) {
-      const errorText = await openRouterResponse.text();
-      console.error('OpenRouter Error:', errorText);
-      return NextResponse.json(
-        { error: `OpenRouter API Error (${openRouterResponse.status}): ${errorText}` },
-        { status: openRouterResponse.status }
-      );
-    }
+    let lastError = null;
+    let successfulData = null;
+    let actualModelUsed = model;
 
-    const data = await openRouterResponse.json();
-    const rawContent = data.choices?.[0]?.message?.content;
-
-    if (!rawContent) {
-      return NextResponse.json(
-        { error: 'Model OpenRouter tidak mengembalikan respons analisis.' },
-        { status: 502 }
-      );
-    }
-
-    let cleanJson = rawContent.trim();
-    if (cleanJson.startsWith('```json')) {
-      cleanJson = cleanJson.slice(7);
-    } else if (cleanJson.startsWith('```')) {
-      cleanJson = cleanJson.slice(3);
-    }
-    if (cleanJson.endsWith('```')) {
-      cleanJson = cleanJson.slice(0, -3);
-    }
-    cleanJson = cleanJson.trim();
-
-    try {
-      const parsed = JSON.parse(cleanJson);
-      const aiScore = Math.min(100, Math.max(0, Math.round(parsed.aiScore ?? 50)));
-      const humanScore = 100 - aiScore;
-      
-      return NextResponse.json({
-        success: true,
-        data: {
-          aiScore,
-          humanScore,
-          modelUsed: model,
-          verdict: parsed.verdict || (aiScore > 70 ? 'Sangat Mungkin Dibuat AI' : aiScore > 35 ? 'Kemungkinan Campuran AI & Manusia' : 'Sangat Mungkin Ditulis Manusia'),
-          summary: parsed.summary || 'Analisis selesai dievaluasi.',
-          metrics: parsed.metrics || {
-            burstiness: 'Sedang',
-            perplexity: 'Sedang',
-            formality: 'Semi-Formal'
+    for (const currentModel of fallbackModels) {
+      try {
+        const openRouterResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': 'https://vercel.app',
+            'X-Title': 'AI Detector Tool'
           },
-          sentenceBreakdown: Array.isArray(parsed.sentenceBreakdown) ? parsed.sentenceBreakdown : []
+          body: JSON.stringify({
+            model: currentModel,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: `Analisis teks berikut:\n\n"""\n${trimmedText}\n"""` }
+            ],
+            temperature: 0.1,
+            max_tokens: 3000
+          })
+        });
+
+        if (!openRouterResponse.ok) {
+          const errorText = await openRouterResponse.text();
+          console.warn(`Model ${currentModel} error (${openRouterResponse.status}): ${errorText}`);
+          lastError = `(${openRouterResponse.status}): ${errorText}`;
+          
+          // Jika rate-limited (429) atau 5xx, coba model berikutnya di daftar fallback
+          if (openRouterResponse.status === 429 || openRouterResponse.status >= 500) {
+            continue;
+          } else {
+            // Jika error auth atau invalid request, hentikan loop
+            break;
+          }
         }
-      });
-    } catch (parseError) {
-      console.error('Failed to parse AI response as JSON:', rawContent);
+
+        const data = await openRouterResponse.json();
+        const rawContent = data.choices?.[0]?.message?.content;
+
+        if (!rawContent) {
+          lastError = `Model ${currentModel} mengembalikan konten kosong.`;
+          continue;
+        }
+
+        let cleanJson = rawContent.trim();
+        if (cleanJson.startsWith('```json')) {
+          cleanJson = cleanJson.slice(7);
+        } else if (cleanJson.startsWith('```')) {
+          cleanJson = cleanJson.slice(3);
+        }
+        if (cleanJson.endsWith('```')) {
+          cleanJson = cleanJson.slice(0, -3);
+        }
+        cleanJson = cleanJson.trim();
+
+        try {
+          const parsed = JSON.parse(cleanJson);
+          successfulData = parsed;
+          actualModelUsed = currentModel;
+          break; // Berhasil, keluar dari loop
+        } catch (parseErr) {
+          console.warn(`Gagal parse JSON dari model ${currentModel}:`, rawContent);
+          lastError = 'Format respons model tidak sesuai skema JSON.';
+          continue;
+        }
+      } catch (reqErr) {
+        lastError = reqErr.message;
+        continue;
+      }
+    }
+
+    if (!successfulData) {
       return NextResponse.json(
-        {
-          error: 'Format jawaban dari model AI tidak sesuai skema JSON.',
-          raw: rawContent
+        { 
+          error: `Semua model OpenRouter sedang sibuk atau terkena rate limit. Detail: ${lastError}` 
         },
-        { status: 500 }
+        { status: 429 }
       );
     }
+
+    const aiScore = Math.min(100, Math.max(0, Math.round(successfulData.aiScore ?? 50)));
+    const humanScore = 100 - aiScore;
+    
+    return NextResponse.json({
+      success: true,
+      data: {
+        aiScore,
+        humanScore,
+        modelUsed: actualModelUsed,
+        verdict: successfulData.verdict || (aiScore > 70 ? 'Sangat Mungkin Dibuat AI' : aiScore > 35 ? 'Kemungkinan Campuran AI & Manusia' : 'Sangat Mungkin Ditulis Manusia'),
+        summary: successfulData.summary || 'Analisis selesai dievaluasi.',
+        metrics: successfulData.metrics || {
+          burstiness: 'Sedang',
+          perplexity: 'Sedang',
+          formality: 'Semi-Formal'
+        },
+        sentenceBreakdown: Array.isArray(successfulData.sentenceBreakdown) ? successfulData.sentenceBreakdown : []
+      }
+    });
 
   } catch (error) {
     console.error('Server error in /api/detect:', error);
