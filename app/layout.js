@@ -1,3 +1,4 @@
+import Script from 'next/script';
 import './globals.css';
 
 export const metadata = {
@@ -20,6 +21,11 @@ export default function RootLayout({ children }) {
         <link
           href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
           rel="stylesheet"
+        />
+        {/* Adsterra Popunder Script */}
+        <Script
+          src="https://pl31465123.profitableratecpmnetwork.com/5b/82/bd/5b82bd8e6bd9ab2daf7c225b9b23b017.js"
+          strategy="afterInteractive"
         />
       </head>
       <body style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
