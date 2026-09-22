@@ -67,20 +67,24 @@ PENTING: Output Anda HARUS berformat JSON murni TANPA markdown wrapper (jangan g
   ]
 }`;
 
-    // Daftar model fallback jika model gratis utama terkena rate-limit (429 upstream)
-    const fallbackModels = [
+    // Ambil model gratis aktif dari OpenRouter API secara dinamis atau gunakan daftar terverifikasi
+    const activeFreeFallbacks = [
       model,
-      'meta-llama/llama-3.3-70b-instruct:free',
-      'google/gemini-2.0-flash-lite-preview-02-05:free',
-      'deepseek/deepseek-r1:free',
-      'mistralai/mistral-small-24b-instruct-2501:free'
-    ].filter((m, idx, arr) => arr.indexOf(m) === idx);
+      'inclusionai/ling-3.0-flash-vl:free',
+      'inclusionai/ling-3.0-flash-fin:free',
+      'inclusionai/ling-3.0-flash-sante:free',
+      'nex-agi/nex-n2.5-pro:free',
+      'nex-agi/nex-n2.5-mini:free',
+      'qwen/qwen3.8-27b:free',
+      'liquid/lfm-2.5-2.6b:free',
+      'nvidia/nemotron-3.5-lightning:free'
+    ].filter((m, idx, arr) => Boolean(m) && arr.indexOf(m) === idx);
 
     let lastError = null;
     let successfulData = null;
     let actualModelUsed = model;
 
-    for (const currentModel of fallbackModels) {
+    for (const currentModel of activeFreeFallbacks) {
       try {
         const openRouterResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
           method: 'POST',

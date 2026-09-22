@@ -19,9 +19,10 @@ import {
 
 const AVAILABLE_MODELS = [
   { id: 'inclusionai/ling-3.0-flash-vl:free', name: 'Ling 3.0 Flash VL (Free - Default)', badge: 'Default' },
-  { id: 'meta-llama/llama-3.3-70b-instruct:free', name: 'Llama 3.3 70B Instruct (Free)', badge: 'Free' },
-  { id: 'google/gemini-2.0-flash-lite-preview-02-05:free', name: 'Gemini 2.0 Flash Lite (Free)', badge: 'Free' },
-  { id: 'deepseek/deepseek-r1:free', name: 'DeepSeek R1 (Free)', badge: 'Free' },
+  { id: 'inclusionai/ling-3.0-flash-fin:free', name: 'Ling 3.0 Flash Fin (Free)', badge: 'Free' },
+  { id: 'nex-agi/nex-n2.5-pro:free', name: 'Nex N2.5 Pro (Free)', badge: 'Free' },
+  { id: 'qwen/qwen3.8-27b:free', name: 'Qwen 3.8 27B (Free)', badge: 'Free' },
+  { id: 'nvidia/nemotron-3.5-lightning:free', name: 'Nvidia Nemotron 3.5 Lightning (Free)', badge: 'Free' },
   { id: 'custom', name: '⚙️ Gunakan Custom Model ID...', badge: 'Manual' }
 ];
 
