@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { 
-  Sparkles, 
-  AlertTriangle, 
-  CheckCircle2, 
-  RefreshCw, 
-  Copy, 
-  Trash2, 
+import {
+  Sparkles,
+  AlertTriangle,
+  CheckCircle2,
+  RefreshCw,
+  Copy,
+  Trash2,
   ArrowRight,
   HelpCircle,
   FileText,
@@ -125,7 +125,7 @@ export default function HomePage() {
     try {
       // Chunking teks jika sangat panjang (Unlimited paragraphs support)
       const chunks = splitTextIntoSmartChunks(inputText, 450);
-      
+
       let totalAiScore = 0;
       let allSentences = [];
       let aggregatedSummaries = [];
@@ -141,9 +141,9 @@ export default function HomePage() {
         const res = await fetch('/api/detect', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            text: chunks[i], 
-            model: activeModelId 
+          body: JSON.stringify({
+            text: chunks[i],
+            model: activeModelId
           }),
         });
 
@@ -171,11 +171,11 @@ export default function HomePage() {
         humanScore: finalHumanScore,
         modelUsed: activeModelId,
         chunksProcessed: chunks.length,
-        verdict: finalAiScore > 70 
-          ? 'Sangat Mungkin Dibuat AI' 
-          : finalAiScore > 35 
-          ? 'Kemungkinan Campuran AI & Manusia' 
-          : 'Sangat Mungkin Ditulis Manusia',
+        verdict: finalAiScore > 70
+          ? 'Sangat Mungkin Dibuat AI'
+          : finalAiScore > 35
+            ? 'Kemungkinan Campuran AI & Manusia'
+            : 'Sangat Mungkin Ditulis Manusia',
         summary: aggregatedSummaries.join(' ') || 'Analisis selesai dievaluasi.',
         metrics: metricsCollect,
         sentenceBreakdown: allSentences
@@ -239,16 +239,16 @@ export default function HomePage() {
 
   return (
     <main style={{ maxWidth: '1280px', margin: '0 auto', padding: '36px 20px', minHeight: '100vh' }}>
-      
+
       {/* Top Header & Model Switcher Bar */}
       <header style={{ marginBottom: '32px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
           <div>
-            <div style={{ 
-              display: 'inline-flex', 
-              alignItems: 'center', 
-              gap: '6px', 
-              background: 'rgba(99, 102, 241, 0.12)', 
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: 'rgba(99, 102, 241, 0.12)',
               border: '1px solid rgba(99, 102, 241, 0.3)',
               padding: '4px 12px',
               borderRadius: '999px',
@@ -315,10 +315,10 @@ export default function HomePage() {
 
       {/* Main Grid: Input / Upload & Result */}
       <div style={{ display: 'grid', gridTemplateColumns: result ? 'repeat(auto-fit, minmax(380px, 1fr))' : '1fr', gap: '24px' }}>
-        
+
         {/* Left Column: Input Box & File Upload */}
         <section className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column' }}>
-          
+
           {/* Controls Bar */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
             <span style={{ fontWeight: '600', fontSize: '0.95rem', color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -327,15 +327,15 @@ export default function HomePage() {
 
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               {/* File upload input hidden */}
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                onChange={handleFileUpload} 
-                accept=".docx,.pdf,.txt" 
-                style={{ display: 'none' }} 
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+                accept=".docx,.pdf,.txt"
+                style={{ display: 'none' }}
               />
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className="btn-secondary"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploadingFile}
@@ -346,17 +346,17 @@ export default function HomePage() {
                 <span>{uploadingFile ? 'Membaca File...' : 'Upload Dokumen (.docx / .pdf)'}</span>
               </button>
 
-              <button 
-                type="button" 
-                className="btn-secondary" 
+              <button
+                type="button"
+                className="btn-secondary"
                 onClick={() => loadSample('ai')}
                 title="Coba contoh teks AI"
               >
                 Sample AI
               </button>
-              <button 
-                type="button" 
-                className="btn-secondary" 
+              <button
+                type="button"
+                className="btn-secondary"
                 onClick={() => loadSample('human')}
                 title="Coba contoh teks Manusia"
               >
@@ -383,8 +383,8 @@ export default function HomePage() {
                 <FileCheck size={16} />
                 <span>File terunggah: <strong>{uploadedFile.name}</strong> ({uploadedFile.size})</span>
               </div>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => { setUploadedFile(null); setInputText(''); }}
                 style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex' }}
               >
@@ -441,9 +441,9 @@ export default function HomePage() {
                 {copyFeedback ? 'Tersalin!' : 'Salin'}
               </button>
               {inputText && (
-                <button 
-                  type="button" 
-                  className="btn-secondary" 
+                <button
+                  type="button"
+                  className="btn-secondary"
                   onClick={() => { setInputText(''); setUploadedFile(null); setResult(null); setError(''); }}
                   title="Bersihkan teks"
                 >
@@ -494,7 +494,7 @@ export default function HomePage() {
         {/* Right Column: Analysis Result */}
         {result && (
           <section className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            
+
             {/* Score Overview Box */}
             <div style={{
               background: 'rgba(15, 23, 42, 0.75)',
@@ -639,15 +639,15 @@ export default function HomePage() {
                   overflowY: 'auto'
                 }}>
                   {result.sentenceBreakdown.map((item, idx) => {
-                    const cls = item.classification === 'ai' 
-                      ? 'hl-ai' 
-                      : item.classification === 'mixed' 
-                      ? 'hl-mixed' 
-                      : 'hl-human';
+                    const cls = item.classification === 'ai'
+                      ? 'hl-ai'
+                      : item.classification === 'mixed'
+                        ? 'hl-mixed'
+                        : 'hl-human';
 
                     return (
-                      <span 
-                        key={idx} 
+                      <span
+                        key={idx}
                         className={cls}
                         title={`[${item.classification?.toUpperCase() || 'INFO'}] Probabilitas AI: ${item.probabilityAi || 0}% - ${item.reason || ''}`}
                         style={{ marginRight: '6px', cursor: 'help' }}
@@ -668,7 +668,7 @@ export default function HomePage() {
       {/* Footer */}
       <footer style={{ marginTop: '50px', borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
         <p>
-          Siap di-deploy langsung ke <strong>Vercel</strong>. API Key tersimpan aman di server-side.
+          Wes iki 100% <strong>Gratis</strong>. cocote batin dijogo yo lek
         </p>
       </footer>
     </main>
