@@ -39,7 +39,7 @@ const SAMPLE_TEXTS = {
   human: `Tadi siang pas lagi nongkrong di warkop deket kantor, gue sempet kepikiran gimana cepetnya teknologi sekarang. Rasanya baru kemarin pake hape polifonik, eh sekarang ngetik apapun dijawab sama robot. Tapi jujur, kadang berasa agak ngeri juga sih kalau semua hal serba otomatis, vibe interaksi manusianya jadi rada ilang.`
 };
 
-function splitTextIntoSmartChunks(fullText, maxWordsPerChunk = 450) {
+function splitTextIntoSmartChunks(fullText, maxWordsPerChunk = 2500) {
   const paragraphs = fullText.split(/\n+/).filter(p => p.trim().length > 0);
   const chunks = [];
   let currentChunk = [];
@@ -234,29 +234,47 @@ export default function HomePage() {
     setResult(null);
 
     try {
-      const chunks = splitTextIntoSmartChunks(inputText, 450);
+      const chunks = splitTextIntoSmartChunks(inputText, 2500);
       let totalAiScore = 0;
       let allSentences = [];
       let aggregatedSummaries = [];
       let metricsCollect = { burstiness: 'Sedang', perplexity: 'Sedang', formality: 'Semi-Formal' };
 
       for (let i = 0; i < chunks.length; i++) {
+        if (i > 0) {
+          setProgressStatus(`⏳ Mengatur jeda kuota antrian (${i + 1}/${chunks.length})...`);
+          await new Promise(resolve => setTimeout(resolve, 1500));
+        }
+
         if (chunks.length > 1) {
           setProgressStatus(`🔍 Memindai fragmen data (${i + 1}/${chunks.length})...`);
         } else {
-          setProgressStatus('⚡ Menghubungi neural engine OpenRouter...');
+          setProgressStatus('⚡ Menghubungi neural engine AI...');
         }
 
-        const res = await fetch('/api/detect', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            text: chunks[i], 
-            model: activeModelId,
-            userOpenRouterKey: userOpenRouterKey.trim() || undefined,
-            userGeminiKey: userGeminiKey.trim() || undefined
-          }),
-        });
+        let res;
+        let retries = 0;
+        while (retries < 2) {
+          res = await fetch('/api/detect', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              text: chunks[i], 
+              model: activeModelId,
+              userOpenRouterKey: userOpenRouterKey.trim() || undefined,
+              userGeminiKey: userGeminiKey.trim() || undefined
+            }),
+          });
+
+          // Jika terkena limit rate per menit sementara, coba tunggu sebentar lalu retry
+          if (res.status === 429 && retries < 1) {
+            setProgressStatus(`⏳ Menunggu jeda kuota per menit (retry otomatis dalam 4s)...`);
+            await new Promise(resolve => setTimeout(resolve, 4000));
+            retries++;
+            continue;
+          }
+          break;
+        }
 
         const json = await res.json();
         if (!res.ok || !json.success) {
@@ -586,9 +604,9 @@ export default function HomePage() {
                 <span style={{ background: 'rgba(255,255,255,0.05)', padding: '4px 10px', borderRadius: '6px' }}>
                   {charCount.toLocaleString()} Karakter
                 </span>
-                {wordCount > 450 && (
+                {wordCount > 2500 && (
                   <span style={{ color: '#38bdf8', fontWeight: '600' }}>
-                    ⚡ Auto-Chunk (~{Math.ceil(wordCount / 450)} batch)
+                    ⚡ Auto-Chunk (~{Math.ceil(wordCount / 2500)} batch)
                   </span>
                 )}
               </div>

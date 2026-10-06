@@ -136,7 +136,8 @@ PENTING: Output Anda HARUS berformat JSON murni TANPA markdown wrapper (jangan g
       "reason": "<alasan singkat>"
     }
   ]
-}`;
+}
+Catatan untuk sentenceBreakdown: Tampilkan 6 sampai 15 kalimat sampel representatif terbaik (utamakan kalimat yang menunjukkan ciri khas AI atau manusia) agar pemrosesan cepat dan komprehensif.`;
 
     let lastError = null;
     let successfulData = null;
