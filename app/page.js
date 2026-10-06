@@ -25,11 +25,12 @@ import {
 import confetti from 'canvas-confetti';
 
 const AVAILABLE_MODELS = [
-  { id: 'gemini-2.5-flash', name: 'Google Gemini 2.5 Flash (1M+ Token Context)', badge: 'Recommended' },
-  { id: 'inclusionai/ling-3.0-flash-vl:free', name: 'Ling 3.0 Flash VL (OpenRouter)', badge: 'Free' },
-  { id: 'inclusionai/ling-3.0-flash-fin:free', name: 'Ling 3.0 Flash Fin (OpenRouter)', badge: 'Free' },
-  { id: 'nex-agi/nex-n2.5-pro:free', name: 'Nex N2.5 Pro (OpenRouter)', badge: 'Free' },
-  { id: 'qwen/qwen3.8-27b:free', name: 'Qwen 3.8 27B (OpenRouter)', badge: 'Free' },
+  { id: 'gemini-3.5-flash', name: 'Google Gemini 3.5 Flash (Super Cepat & Akurat)', badge: 'Recommended' },
+  { id: 'gemini-3.1-flash-lite', name: 'Google Gemini 3.1 Flash Lite (Ringan & Cepat)', badge: 'Fast' },
+  { id: 'gemini-3.8-flash', name: 'Google Gemini 3.8 Flash (Context Besar)', badge: 'Latest' },
+  { id: 'inclusionai/ling-3.0-flash-sante:free', name: 'Ling 3.0 Flash Sante (OpenRouter)', badge: 'Free' },
+  { id: 'liquid/lfm-2.5-2.6b:free', name: 'Liquid LFM 2.5 (OpenRouter)', badge: 'Free' },
+  { id: 'apodex/apodex-1.1-mini:free', name: 'Apodex 1.1 Mini (OpenRouter)', badge: 'Free' },
   { id: 'custom', name: '⚙️ Gunakan Custom Model ID...', badge: 'Manual' }
 ];
 
@@ -152,7 +153,7 @@ function RadialGauge({ score }) {
 
 export default function HomePage() {
   const [inputText, setInputText] = useState('');
-  const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash');
+  const [selectedModel, setSelectedModel] = useState('gemini-3.5-flash');
   const [customModel, setCustomModel] = useState('');
   const [userOpenRouterKey, setUserOpenRouterKey] = useState('');
   const [userGeminiKey, setUserGeminiKey] = useState('');
@@ -166,6 +167,17 @@ export default function HomePage() {
   const [copyFeedback, setCopyFeedback] = useState(false);
   const [filterHighlight, setFilterHighlight] = useState('all');
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    try {
+      const savedGemini = localStorage.getItem('user_gemini_key');
+      const savedOR = localStorage.getItem('user_openrouter_key');
+      if (savedGemini) setUserGeminiKey(savedGemini);
+      if (savedOR) setUserOpenRouterKey(savedOR);
+    } catch (e) {
+      // ignore
+    }
+  }, []);
 
   const wordCount = inputText.trim() ? inputText.trim().split(/\s+/).length : 0;
   const charCount = inputText.length;
@@ -248,7 +260,8 @@ export default function HomePage() {
 
         const json = await res.json();
         if (!res.ok || !json.success) {
-          throw new Error(json.error || `Gagal menganalisis bagian ${i + 1}.`);
+          const detail = json.detail ? ` (${json.detail})` : '';
+          throw new Error((json.error || `Gagal menganalisis bagian ${i + 1}.`) + detail);
         }
 
         const chunkData = json.data;
@@ -1015,7 +1028,14 @@ export default function HomePage() {
                 {(userGeminiKey || userOpenRouterKey) && (
                   <button
                     type="button"
-                    onClick={() => { setUserGeminiKey(''); setUserOpenRouterKey(''); }}
+                    onClick={() => {
+                      setUserGeminiKey('');
+                      setUserOpenRouterKey('');
+                      try {
+                        localStorage.removeItem('user_gemini_key');
+                        localStorage.removeItem('user_openrouter_key');
+                      } catch (e) {}
+                    }}
                     className="btn-cyber-secondary"
                     style={{ fontSize: '0.85rem' }}
                   >
@@ -1024,7 +1044,16 @@ export default function HomePage() {
                 )}
                 <button
                   type="button"
-                  onClick={() => setShowKeyModal(false)}
+                  onClick={() => {
+                    try {
+                      if (userGeminiKey.trim()) localStorage.setItem('user_gemini_key', userGeminiKey.trim());
+                      else localStorage.removeItem('user_gemini_key');
+
+                      if (userOpenRouterKey.trim()) localStorage.setItem('user_openrouter_key', userOpenRouterKey.trim());
+                      else localStorage.removeItem('user_openrouter_key');
+                    } catch (e) {}
+                    setShowKeyModal(false);
+                  }}
                   className="btn-cyber-primary"
                   style={{ fontSize: '0.85rem' }}
                 >

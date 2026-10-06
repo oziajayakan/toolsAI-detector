@@ -18,12 +18,16 @@ function cleanAndParseJSON(rawContent) {
 }
 
 // Analisis langsung via Google Gemini API resmi (1M+ token context, sangat cepat & kuota besar)
-async function analyzeWithGemini(trimmedText, systemPrompt, userApiKey) {
+async function analyzeWithGemini(trimmedText, systemPrompt, userApiKey, preferredModel) {
   const apiKey = userApiKey || process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error('GEMINI_API_KEY_MISSING');
 
-  // Menggunakan gemini-2.5-flash / gemini-1.5-flash dengan jutaan token konteks
-  const modelsToTry = ['gemini-2.5-flash', 'gemini-1.5-flash'];
+  // Menggunakan model Gemini generasi aktif yang stabil dan cepat
+  const defaultModels = ['gemini-3.5-flash', 'gemini-3.1-flash-lite', 'gemini-3.8-flash', 'gemini-flash-latest'];
+  const modelsToTry = preferredModel && preferredModel.startsWith('gemini')
+    ? [preferredModel, ...defaultModels.filter(m => m !== preferredModel)]
+    : defaultModels;
+
   let lastErr = null;
 
   for (const gemModel of modelsToTry) {
@@ -134,12 +138,16 @@ PENTING: Output Anda HARUS berformat JSON murni TANPA markdown wrapper (jangan g
   ]
 }`;
 
+    let lastError = null;
+    let successfulData = null;
+    let actualModelUsed = requestedModel || 'gemini-3.5-flash';
+
     const isGeminiSelected = requestedModel && requestedModel.startsWith('gemini');
 
     // Jika user memilih Gemini atau mode prioritas Gemini
     if (isGeminiSelected) {
       try {
-        const { data: geminiData, modelUsed } = await analyzeWithGemini(trimmedText, systemPrompt, userGeminiKey);
+        const { data: geminiData, modelUsed } = await analyzeWithGemini(trimmedText, systemPrompt, userGeminiKey, requestedModel);
         const aiScore = Math.min(100, Math.max(0, Math.round(geminiData.aiScore ?? 50)));
         return NextResponse.json({
           success: true,
@@ -155,26 +163,22 @@ PENTING: Output Anda HARUS berformat JSON murni TANPA markdown wrapper (jangan g
         });
       } catch (gemErr) {
         console.warn('Gemini request direct error:', gemErr.message);
+        lastError = gemErr.message;
         // Fallback lanjut ke OpenRouter jika memungkinkan
       }
     }
 
     // Jika memilih OpenRouter atau fallback
     const openRouterApiKey = userOpenRouterKey || process.env.OPENROUTER_API_KEY;
-    const model = requestedModel?.trim() || process.env.OPENROUTER_MODEL || 'inclusionai/ling-3.0-flash-vl:free';
+    const model = requestedModel?.trim() || process.env.OPENROUTER_MODEL || 'inclusionai/ling-3.0-flash-sante:free';
 
     const activeFreeFallbacks = [
       model,
-      'inclusionai/ling-3.0-flash-vl:free',
-      'inclusionai/ling-3.0-flash-fin:free',
       'inclusionai/ling-3.0-flash-sante:free',
-      'nex-agi/nex-n2.5-pro:free',
-      'qwen/qwen3.8-27b:free'
+      'liquid/lfm-2.5-2.6b:free',
+      'apodex/apodex-1.1-mini:free',
+      'nvidia/nemotron-3.5-lightning:free'
     ].filter((m, idx, arr) => Boolean(m) && !m.startsWith('gemini') && arr.indexOf(m) === idx);
-
-    let lastError = null;
-    let successfulData = null;
-    let actualModelUsed = model;
 
     if (openRouterApiKey) {
       for (const currentModel of activeFreeFallbacks) {
@@ -200,7 +204,7 @@ PENTING: Output Anda HARUS berformat JSON murni TANPA markdown wrapper (jangan g
 
           if (!openRouterResponse.ok) {
             const errorText = await openRouterResponse.text();
-            lastError = `(${openRouterResponse.status}): ${errorText}`;
+            lastError = `OpenRouter (${openRouterResponse.status}): ${errorText}`;
             if (openRouterResponse.status === 429 || openRouterResponse.status >= 500) {
               continue;
             } else {
@@ -223,25 +227,26 @@ PENTING: Output Anda HARUS berformat JSON murni TANPA markdown wrapper (jangan g
       }
     }
 
-    // Jika OpenRouter gagal atau terkena 429 token limit, otomatis fallback ke Gemini AI resmi
+    // Jika OpenRouter gagal atau terkena limit, otomatis fallback ke Gemini AI resmi
     if (!successfulData && (process.env.GEMINI_API_KEY || userGeminiKey)) {
       try {
-        console.log('OpenRouter limit reached, attempting automatic fallback to Google Gemini...');
+        console.log('Attempting fallback to Google Gemini...');
         const { data: geminiFallback, modelUsed: fallbackModel } = await analyzeWithGemini(trimmedText, systemPrompt, userGeminiKey);
         successfulData = geminiFallback;
         actualModelUsed = `${fallbackModel} (Auto-Fallback)`;
       } catch (gemFallbackErr) {
-        console.error('Gemini fallback failed:', gemFallbackErr);
+        console.error('Gemini fallback failed:', gemFallbackErr.message);
+        if (!lastError) lastError = gemFallbackErr.message;
       }
     }
 
-    // Jika SEMUA token limit habis
+    // Jika SEMUA token limit habis atau gagal
     if (!successfulData) {
       return NextResponse.json(
         { 
           isTokenExhausted: true,
-          error: "token limit kami sudah habis silahkan tunggu besok lagi, atau anda bisa mengganti token openrouter & gemini nya",
-          detail: lastError
+          error: "Token limit habis atau API Key tidak valid. Silakan periksa kembali API Key Anda.",
+          detail: lastError || "Tidak ada respons dari AI Provider."
         },
         { status: 429 }
       );

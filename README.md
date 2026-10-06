@@ -23,7 +23,7 @@ Aplikasi ini menggunakan **Next.js 14 (App Router)** yang merupakan framework re
 6. Pada bagian **Environment Variables**, tambahkan:
    - **Key**: `OPENROUTER_API_KEY`
    - **Value**: `your_openrouter_api_key` (Masukkan API key OpenRouter Anda)
-   - *(Opsional)* **Key**: `OPENROUTER_MODEL` | **Value**: `inclusionai/ling-3.0-flash-vl:free`
+   - *(Opsional)* **Key**: `OPENROUTER_MODEL` | **Value**: `inclusionai/ling-3.0-flash-sante:free`
 7. Klik tombol **"Deploy"**.
 8. Tunggu sekitar 1 menit hingga proses build selesai. Domain gratis dari Vercel (misalnya: `https://tools-deteksi-ai.vercel.app`) siap digunakan!
 
